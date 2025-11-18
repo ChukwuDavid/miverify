@@ -1,3 +1,18 @@
+# Node / Next defaults
+node_modules/
+.next/
+out/
+dist/
+
+# Env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+.DS_Store
+Thumbs.db
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
