@@ -393,3 +393,9 @@
 .hidden {
   display: none !important;
 }
+/* ... existing styles ... */
+
+/* Add this new class at the bottom */
+.errorText {
+  color: #ef4444;
+}

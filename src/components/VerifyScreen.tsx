@@ -65,8 +65,7 @@ export default function VerifyScreen({
 
   const [state, setState] = useState<ScanState>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const [guestName, setGuestName] = useState<string | null>(null);
+  // REMOVED: unused 'scannedCode' and 'guestName' state
   const [useLibrary, setUseLibrary] = useState(false);
 
   /* -------------------------------------------------------------------------- */
@@ -80,7 +79,6 @@ export default function VerifyScreen({
     };
   }, []);
 
-  // FIX: Trigger scanning ONLY after the UI has updated to "scanning" mode
   useEffect(() => {
     if (state === "scanning") {
       startScanning();
@@ -138,9 +136,6 @@ export default function VerifyScreen({
       });
 
       streamRef.current = stream;
-      // Note: We don't attach the stream here anymore.
-      // We wait for the render to finish (state -> scanning) and attach it in startScanning.
-
       setState("scanning");
     } catch {
       setState("permission-denied");
@@ -159,14 +154,12 @@ export default function VerifyScreen({
       window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }
     ).BarcodeDetector;
 
-    // Strategy 1: Native Barcode API
     if (BarcodeDetectorClass) {
       try {
         const detector = new BarcodeDetectorClass({ formats: ["qr_code"] });
         const testCanvas = document.createElement("canvas");
         await detector.detect(testCanvas);
 
-        // FIX: Attach the stream to the video element now that it is rendered
         if (videoRef.current && streamRef.current) {
           videoRef.current.srcObject = streamRef.current;
           await videoRef.current.play();
@@ -179,8 +172,7 @@ export default function VerifyScreen({
       }
     }
 
-    // Strategy 2: HTML5-QRCode Library Fallback
-    stopStream(); // Library manages its own stream
+    stopStream();
     setUseLibrary(true);
 
     try {
@@ -257,20 +249,20 @@ export default function VerifyScreen({
 
     stopStream();
     await cleanupHtml5Scanner();
-    setScannedCode(code);
+    // REMOVED: setScannedCode(code);
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 800));
-      const success = Math.random() > 0.2;
+      const success = Math.random() > 0.2; // Mock validation logic
 
       if (success) {
         const mockGuest = "Guest #" + Math.floor(Math.random() * 1000);
-        setGuestName(mockGuest);
+        // REMOVED: setGuestName(mockGuest);
         setState("success");
         if (onVerified) onVerified(code, mockGuest);
       } else {
         setState("error");
-        setError("Invalid Ticket Code");
+        setError("Ticket Invalid or Expired");
       }
     } catch {
       setState("error");
@@ -281,8 +273,8 @@ export default function VerifyScreen({
   const resetScanner = () => {
     stopStream();
     cleanupHtml5Scanner();
-    setGuestName(null);
-    setScannedCode(null);
+    // REMOVED: setGuestName(null);
+    // REMOVED: setScannedCode(null);
     setUseLibrary(false);
     setState("idle");
   };
@@ -369,19 +361,17 @@ export default function VerifyScreen({
           {state === "success" && (
             <div className={styles.successState}>
               <div className={styles.successIcon}>✓</div>
-              <h3 className={styles.successTitle}>Access Granted</h3>
-              <p className={styles.guestName}>{guestName}</p>
-              <p className={styles.ticketCode}>{scannedCode}</p>
-              <button className={styles.verifyButton} onClick={resetScanner}>
-                Scan Next
-              </button>
+              <h3 className={styles.successTitle}>Verifying...</h3>
             </div>
           )}
 
           {state === "error" && (
             <div className={styles.errorState}>
               <div className={styles.errorIcon}>!</div>
-              <h3 className={styles.errorTitle}>Verification Failed</h3>
+              {/* FIX: Replaced inline style with CSS class */}
+              <h3 className={`${styles.errorTitle} ${styles.errorText}`}>
+                ACCESS DENIED
+              </h3>
               <p className={styles.errorMessage}>{error}</p>
               <button
                 className={styles.retryButton}

@@ -95,3 +95,60 @@
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
+
+/* ... existing styles ... */
+
+/* New styles for HomeScreen.tsx */
+.cardWrapper {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: white;
+  margin: 0 auto 1.5rem auto;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+}
+
+.guestNameTitle {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #ffffff 0%, #c2e9fb 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.scanNextButton {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  padding: 1rem;
+  font-size: 1.1rem;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 18px rgba(6, 95, 70, 0.35);
+}
+
+.scanNextButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(6, 95, 70, 0.4);
+}
+
+.scanNextButton:active {
+  transform: translateY(0);
+}

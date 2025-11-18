@@ -1,41 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+// Fix: Removed unused useAuth import
 import VerifyScreen from "@/components/VerifyScreen";
 import HomeScreen from "@/components/HomeScreen";
-import { isUserVerified, markUserVerified } from "@/lib/verification";
 
 export default function Page() {
   /* -------------------------------------------------------------------------- */
   /* STATE & HOOKS                                                              */
   /* -------------------------------------------------------------------------- */
 
-  const { user } = useAuth();
-  const [verifiedManual, setVerifiedManual] = useState(false);
+  // Fix: Removed unused user variable
+  const [scannedGuest, setScannedGuest] = useState<string | null>(null);
 
   /* -------------------------------------------------------------------------- */
-  /* VERIFICATION LOGIC                                                         */
+  /* HANDLERS                                                                   */
   /* -------------------------------------------------------------------------- */
 
-  const checkedVerified = user?.uid ? isUserVerified(user.uid) : false;
-  const verified = checkedVerified || verifiedManual;
-
-  const handleVerified = (code?: string) => {
-    console.log("Verified with code:", code);
-    if (user?.uid) {
-      markUserVerified(user.uid);
-      setVerifiedManual(true);
+  // Called when VerifyScreen successfully validates a code
+  const handleVerified = (code?: string, guestName?: string) => {
+    console.log("Verified code:", code);
+    if (guestName) {
+      setScannedGuest(guestName);
     }
+  };
+
+  // Called when user clicks "Scan Next Guest"
+  const handleScanNext = () => {
+    setScannedGuest(null);
   };
 
   /* -------------------------------------------------------------------------- */
   /* RENDER                                                                     */
   /* -------------------------------------------------------------------------- */
 
-  if (!verified) {
-    return <VerifyScreen onVerified={handleVerified} />;
+  // If we have a scanned guest, show the success card (HomeScreen)
+  if (scannedGuest) {
+    return <HomeScreen guestName={scannedGuest} onScanNext={handleScanNext} />;
   }
 
-  return <HomeScreen />;
+  // Otherwise, show the scanner
+  return <VerifyScreen onVerified={handleVerified} />;
 }
