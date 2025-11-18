@@ -25,10 +25,35 @@ const useAuth = () => useContext(AuthContext);
 /* TYPES & INTERFACES                                                         */
 /* -------------------------------------------------------------------------- */
 
+// Interface for the experimental BarcodeDetector API
 interface BarcodeDetectorStub {
   detect(
     imageSource: CanvasImageSource
   ): Promise<Array<{ rawValue: string; displayValue: string }>>;
+}
+
+interface BarcodeDetectorConstructor {
+  new (options?: { formats: string[] }): BarcodeDetectorStub;
+}
+
+// Interface for the Html5Qrcode library instance
+interface Html5QrcodeScanner {
+  start: (
+    cameraIdOrConfig: string | { facingMode: string },
+    configuration: { fps: number; qrbox: { width: number; height: number } },
+    qrCodeSuccessCallback: (
+      decodedText: string,
+      decodedResult: unknown
+    ) => void,
+    qrCodeErrorCallback: (errorMessage: string) => void
+  ) => Promise<void>;
+  stop: () => Promise<void>;
+  clear: () => Promise<void>;
+}
+
+// Interface for the Html5Qrcode Constructor
+interface Html5QrcodeConstructor {
+  new (elementId: string): Html5QrcodeScanner;
 }
 
 type ScanState =
@@ -54,7 +79,8 @@ export default function VerifyScreen({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const html5ScannerRef = useRef<any>(null);
+  // Fix: Typed the scanner ref instead of 'any'
+  const html5ScannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   const { logout } = useAuth();
 
@@ -124,7 +150,8 @@ export default function VerifyScreen({
 
       setState("scanning");
       startScanning();
-    } catch (err) {
+    } catch {
+      // Fix: Removed unused 'err' variable
       setState("permission-denied");
       setError("Camera permission denied. Please check your browser settings.");
     }
@@ -137,7 +164,10 @@ export default function VerifyScreen({
   const startScanning = async () => {
     cleanupHtml5Scanner();
 
-    const BarcodeDetectorClass = (window as any).BarcodeDetector;
+    // Fix: Typed the window object access to avoid 'any'
+    const BarcodeDetectorClass = (
+      window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }
+    ).BarcodeDetector;
 
     // Strategy 1: Native Barcode API (Chrome/Android)
     if (BarcodeDetectorClass) {
@@ -145,14 +175,17 @@ export default function VerifyScreen({
         const detector = new BarcodeDetectorClass({ formats: ["qr_code"] });
         scanWithBarcodeDetector(detector);
         return;
-      } catch (err) {
-        // Fallthrough to strategy 2 if initialization fails
+      } catch {
+        // Fix: Removed unused 'err' variable - Fallthrough to strategy 2
       }
     }
 
     // Strategy 2: HTML5-QRCode Library Fallback
     try {
-      const { Html5Qrcode } = await import("html5-qrcode");
+      // Note: We assert the type here because we are dynamically importing
+      const html5QrcodeModule = await import("html5-qrcode");
+      const Html5Qrcode =
+        html5QrcodeModule.Html5Qrcode as unknown as Html5QrcodeConstructor;
       scanWithHtml5Qrcode(Html5Qrcode);
     } catch (err) {
       console.warn("Scanner library missing", err);
@@ -182,8 +215,8 @@ export default function VerifyScreen({
             handleDetectedCode(code);
             return;
           }
-        } catch (err) {
-          // Silent fail for empty frames
+        } catch {
+          // Fix: Removed unused 'err' variable - Silent fail for empty frames
         }
       }
       requestAnimationFrame(loop);
@@ -191,7 +224,10 @@ export default function VerifyScreen({
     requestAnimationFrame(loop);
   };
 
-  const scanWithHtml5Qrcode = async (Html5QrcodeClass: any) => {
+  // Fix: Typed the argument as Html5QrcodeConstructor
+  const scanWithHtml5Qrcode = async (
+    Html5QrcodeClass: Html5QrcodeConstructor
+  ) => {
     const id = "html5qrcode-container";
     let container = document.getElementById(id);
 
@@ -240,7 +276,8 @@ export default function VerifyScreen({
         setState("error");
         setError("Invalid Ticket Code");
       }
-    } catch (err) {
+    } catch {
+      // Fix: Removed unused 'err' variable
       setState("error");
       setError("Server connection failed");
     }
@@ -291,8 +328,8 @@ export default function VerifyScreen({
           {state === "permission-denied" && (
             <div className={styles.errorState}>
               <div
-                className={styles.errorIcon}
-                style={{ background: "#6b7280" }}
+                // Fix: Removed inline style and added neutralIcon class
+                className={`${styles.errorIcon} ${styles.neutralIcon}`}
               >
                 ?
               </div>

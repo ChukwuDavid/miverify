@@ -21,8 +21,9 @@
   width: 100%;
   max-width: 450px;
   background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(18px);
+  /* FIX: Reordered to put -webkit- prefix BEFORE the standard property */
   -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   border-radius: 24px;
   padding: 2.5rem 2rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
@@ -62,6 +63,10 @@
   font-size: 1rem;
   margin-bottom: 2rem;
   text-align: center;
+}
+
+.neutralIcon {
+  background-color: #6b7280;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -148,6 +153,8 @@
   right: 20px;
   z-index: 10;
   background: rgba(0, 0, 0, 0.2);
+  /* FIX: Added -webkit- prefix for Safari support */
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   padding: 8px 16px;
   border-radius: 12px;

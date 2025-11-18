@@ -1,6 +1,10 @@
 // src/app/api/verify/route.ts
 import { NextResponse } from "next/server";
 
+/* -------------------------------------------------------------------------- */
+/* CONSTANTS                                                                  */
+/* -------------------------------------------------------------------------- */
+
 const VALID_CODES = new Map([
   ["XTBBN325L", "Single Guest"],
   ["987654321", "Family of Four"],
@@ -11,6 +15,10 @@ const VALID_CODES = new Map([
   ["TUV777888", "Bride's Friends"],
   ["DEF444555", "Groom's Friends"],
 ]);
+
+/* -------------------------------------------------------------------------- */
+/* API ROUTE                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export async function POST(request: Request) {
   try {
@@ -33,7 +41,7 @@ export async function POST(request: Request) {
       { success: false, message: "Access Denied: Invalid Code" },
       { status: 404 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, message: "Server error" },
       { status: 500 }

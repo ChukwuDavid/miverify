@@ -36,7 +36,8 @@ export default function ProtectedRoute({
   const checkedVerified = user?.uid ? isUserVerified(user.uid) : false;
   const verified = checkedVerified || verifiedManual;
 
-  const handleVerified = (code?: string) => {
+  // Fix: Removed the 'code' argument since it was not being used in the function body
+  const handleVerified = () => {
     if (!user?.uid) return;
     markUserVerified(user.uid);
     setVerifiedManual(true);

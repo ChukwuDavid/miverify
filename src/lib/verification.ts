@@ -1,6 +1,10 @@
 // Simple client-side verification state helper.
 // Stores a per-user verified flag in localStorage under `verified_<uid>`.
 
+/* -------------------------------------------------------------------------- */
+/* VERIFICATION HELPERS                                                       */
+/* -------------------------------------------------------------------------- */
+
 export function isUserVerified(uid?: string | null): boolean {
   if (!uid) return false;
   try {
@@ -14,14 +18,14 @@ export function markUserVerified(uid: string): void {
   try {
     localStorage.setItem(`verified_${uid}`, "1");
   } catch {
-    // ignore
+    // Fail silently
   }
 }
 
 export function clearUserVerified(uid: string): void {
   try {
     localStorage.removeItem(`verified_${uid}`);
-  } catch (_e) {
-    // ignore
+  } catch {
+    // Fail silently
   }
 }
