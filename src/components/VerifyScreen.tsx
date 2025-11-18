@@ -302,7 +302,7 @@ export default function VerifyScreen({
                 className={styles.verifyButton}
                 onClick={startPermissionFlow}
               >
-                Start Camera
+                Verify Guest
               </button>
             </div>
           )}
