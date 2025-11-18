@@ -1,25 +1,10 @@
 "use client";
 
-import React, {
-  useRef,
-  useState,
-  useEffect,
-  createContext,
-  useContext,
-} from "react";
+import React, { useRef, useState, useEffect } from "react";
 
+// FIX: Import the real auth hook
+import { useAuth } from "@/lib/auth-context";
 import styles from "./VerifyScreen.module.css";
-
-/* -------------------------------------------------------------------------- */
-/* MOCK AUTH CONTEXT (Replace with actual import in production)               */
-/* -------------------------------------------------------------------------- */
-// import { useAuth } from "@/lib/auth-context";
-
-const AuthContext = createContext<{ logout: () => void }>({
-  logout: () => console.log("Logout clicked"),
-});
-
-const useAuth = () => useContext(AuthContext);
 
 /* -------------------------------------------------------------------------- */
 /* TYPES & INTERFACES                                                         */
@@ -79,9 +64,9 @@ export default function VerifyScreen({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // Fix: Typed the scanner ref instead of 'any'
   const html5ScannerRef = useRef<Html5QrcodeScanner | null>(null);
 
+  // FIX: Use the real logout function from context
   const { logout } = useAuth();
 
   const [state, setState] = useState<ScanState>("idle");
@@ -129,6 +114,21 @@ export default function VerifyScreen({
   };
 
   /* -------------------------------------------------------------------------- */
+  /* HANDLERS                                                                   */
+  /* -------------------------------------------------------------------------- */
+
+  const handleLogout = async () => {
+    try {
+      // Ensure scanner is stopped before logging out to prevent memory leaks
+      stopStream();
+      await cleanupHtml5Scanner();
+      await logout();
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+  };
+
+  /* -------------------------------------------------------------------------- */
   /* PERMISSION FLOW                                                            */
   /* -------------------------------------------------------------------------- */
 
@@ -151,7 +151,6 @@ export default function VerifyScreen({
       setState("scanning");
       startScanning();
     } catch {
-      // Fix: Removed unused 'err' variable
       setState("permission-denied");
       setError("Camera permission denied. Please check your browser settings.");
     }
@@ -164,7 +163,6 @@ export default function VerifyScreen({
   const startScanning = async () => {
     cleanupHtml5Scanner();
 
-    // Fix: Typed the window object access to avoid 'any'
     const BarcodeDetectorClass = (
       window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }
     ).BarcodeDetector;
@@ -176,13 +174,12 @@ export default function VerifyScreen({
         scanWithBarcodeDetector(detector);
         return;
       } catch {
-        // Fix: Removed unused 'err' variable - Fallthrough to strategy 2
+        // Fallthrough to strategy 2
       }
     }
 
     // Strategy 2: HTML5-QRCode Library Fallback
     try {
-      // Note: We assert the type here because we are dynamically importing
       const html5QrcodeModule = await import("html5-qrcode");
       const Html5Qrcode =
         html5QrcodeModule.Html5Qrcode as unknown as Html5QrcodeConstructor;
@@ -216,7 +213,7 @@ export default function VerifyScreen({
             return;
           }
         } catch {
-          // Fix: Removed unused 'err' variable - Silent fail for empty frames
+          // Silent fail for empty frames
         }
       }
       requestAnimationFrame(loop);
@@ -224,7 +221,6 @@ export default function VerifyScreen({
     requestAnimationFrame(loop);
   };
 
-  // Fix: Typed the argument as Html5QrcodeConstructor
   const scanWithHtml5Qrcode = async (
     Html5QrcodeClass: Html5QrcodeConstructor
   ) => {
@@ -277,7 +273,6 @@ export default function VerifyScreen({
         setError("Invalid Ticket Code");
       }
     } catch {
-      // Fix: Removed unused 'err' variable
       setState("error");
       setError("Server connection failed");
     }
@@ -297,7 +292,7 @@ export default function VerifyScreen({
 
   return (
     <div className={styles.verifyContainer}>
-      <button className={styles.logoutFloating} onClick={logout}>
+      <button className={styles.logoutFloating} onClick={handleLogout}>
         Logout
       </button>
 
@@ -327,10 +322,7 @@ export default function VerifyScreen({
 
           {state === "permission-denied" && (
             <div className={styles.errorState}>
-              <div
-                // Fix: Removed inline style and added neutralIcon class
-                className={`${styles.errorIcon} ${styles.neutralIcon}`}
-              >
+              <div className={`${styles.errorIcon} ${styles.neutralIcon}`}>
                 ?
               </div>
               <h3 className={styles.errorTitle}>Camera Blocked</h3>
