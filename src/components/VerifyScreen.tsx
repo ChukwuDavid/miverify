@@ -80,6 +80,14 @@ export default function VerifyScreen({
     };
   }, []);
 
+  // FIX: Trigger scanning ONLY after the UI has updated to "scanning" mode
+  useEffect(() => {
+    if (state === "scanning") {
+      startScanning();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
   const stopStream = () => {
     try {
       if (streamRef.current) {
@@ -130,14 +138,10 @@ export default function VerifyScreen({
       });
 
       streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      // Note: We don't attach the stream here anymore.
+      // We wait for the render to finish (state -> scanning) and attach it in startScanning.
 
       setState("scanning");
-      startScanning();
     } catch {
       setState("permission-denied");
       setError("Camera permission denied. Please check your browser settings.");
@@ -162,15 +166,21 @@ export default function VerifyScreen({
         const testCanvas = document.createElement("canvas");
         await detector.detect(testCanvas);
 
+        // FIX: Attach the stream to the video element now that it is rendered
+        if (videoRef.current && streamRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+          await videoRef.current.play();
+        }
+
         scanWithBarcodeDetector(detector);
         return;
       } catch {
-        // Fallthrough
+        // Fallthrough to library
       }
     }
 
     // Strategy 2: HTML5-QRCode Library Fallback
-    stopStream();
+    stopStream(); // Library manages its own stream
     setUseLibrary(true);
 
     try {
@@ -222,7 +232,7 @@ export default function VerifyScreen({
     if (!element) {
       console.error("Scanner element not found");
       setState("error");
-      setError("Scanner initialization failed");
+      setError("Scanner initialization failed. Please refresh.");
       return;
     }
 
@@ -330,7 +340,6 @@ export default function VerifyScreen({
           {state === "scanning" && (
             <div className={styles.scanningState}>
               <div className={styles.cameraWrapper}>
-                {/* FIX: Use utility classes instead of inline styles */}
                 <video
                   ref={videoRef}
                   className={`${styles.cameraVideo} ${
