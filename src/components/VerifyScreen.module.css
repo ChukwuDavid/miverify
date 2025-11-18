@@ -374,3 +374,22 @@
   height: 100% !important;
   border-radius: 20px;
 }
+/* ... existing code ... */
+
+.reader {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.reader video {
+  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 20px;
+}
+
+/* Add this new class */
+.hidden {
+  display: none !important;
+}

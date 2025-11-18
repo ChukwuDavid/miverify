@@ -67,7 +67,7 @@ export default function VerifyScreen({
   const [error, setError] = useState<string | null>(null);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [guestName, setGuestName] = useState<string | null>(null);
-  const [useLibrary, setUseLibrary] = useState(false); // Track if we are using the library
+  const [useLibrary, setUseLibrary] = useState(false);
 
   /* -------------------------------------------------------------------------- */
   /* LIFECYCLE & CLEANUP                                                        */
@@ -125,13 +125,12 @@ export default function VerifyScreen({
     setError(null);
 
     try {
-      // Request camera access
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
 
-      // Temporarily attach to video ref to show immediate feedback
       streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -156,26 +155,23 @@ export default function VerifyScreen({
       window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }
     ).BarcodeDetector;
 
-    // Strategy 1: Native Barcode API (Chrome/Android)
-    // This works WITH the stream we just opened.
+    // Strategy 1: Native Barcode API
     if (BarcodeDetectorClass) {
       try {
         const detector = new BarcodeDetectorClass({ formats: ["qr_code"] });
-        // Check if it actually works (some browsers implement the class but fail on detect)
         const testCanvas = document.createElement("canvas");
         await detector.detect(testCanvas);
 
         scanWithBarcodeDetector(detector);
         return;
       } catch {
-        // Fallthrough to strategy 2
+        // Fallthrough
       }
     }
 
     // Strategy 2: HTML5-QRCode Library Fallback
-    // FIX: Stop the manual stream so the library can start its own.
     stopStream();
-    setUseLibrary(true); // Switch UI to show the library container
+    setUseLibrary(true);
 
     try {
       const html5QrcodeModule = await import("html5-qrcode");
@@ -222,7 +218,14 @@ export default function VerifyScreen({
   const scanWithHtml5Qrcode = async (
     Html5QrcodeClass: Html5QrcodeConstructor
   ) => {
-    // FIX: Target the visible "reader" div
+    const element = document.getElementById("reader");
+    if (!element) {
+      console.error("Scanner element not found");
+      setState("error");
+      setError("Scanner initialization failed");
+      return;
+    }
+
     const scanner = new Html5QrcodeClass("reader");
     html5ScannerRef.current = scanner;
 
@@ -243,7 +246,7 @@ export default function VerifyScreen({
     if (!code) return;
 
     stopStream();
-    await cleanupHtml5Scanner(); // Make sure we await cleanup
+    await cleanupHtml5Scanner();
     setScannedCode(code);
 
     try {
@@ -327,17 +330,21 @@ export default function VerifyScreen({
           {state === "scanning" && (
             <div className={styles.scanningState}>
               <div className={styles.cameraWrapper}>
-                {/* FIX: Show video for Native API, div for Library */}
-                {!useLibrary ? (
-                  <video
-                    ref={videoRef}
-                    className={styles.cameraVideo}
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <div id="reader" className={styles.reader}></div>
-                )}
+                {/* FIX: Use utility classes instead of inline styles */}
+                <video
+                  ref={videoRef}
+                  className={`${styles.cameraVideo} ${
+                    useLibrary ? styles.hidden : ""
+                  }`}
+                  muted
+                  playsInline
+                />
+                <div
+                  id="reader"
+                  className={`${styles.reader} ${
+                    useLibrary ? "" : styles.hidden
+                  }`}
+                />
 
                 <div className={styles.scanOverlay}>
                   <div className={styles.scanWindow}></div>
