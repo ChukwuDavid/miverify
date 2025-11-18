@@ -65,7 +65,6 @@ export default function VerifyScreen({
 
   const [state, setState] = useState<ScanState>("idle");
   const [error, setError] = useState<string | null>(null);
-  // REMOVED: unused 'scannedCode' and 'guestName' state
   const [useLibrary, setUseLibrary] = useState(false);
 
   /* -------------------------------------------------------------------------- */
@@ -249,32 +248,34 @@ export default function VerifyScreen({
 
     stopStream();
     await cleanupHtml5Scanner();
-    // REMOVED: setScannedCode(code);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const success = Math.random() > 0.2; // Mock validation logic
+      // FIX: Call the server-side API instead of random logic
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
 
-      if (success) {
-        const mockGuest = "Guest #" + Math.floor(Math.random() * 1000);
-        // REMOVED: setGuestName(mockGuest);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const realGuestName = data.guestName;
         setState("success");
-        if (onVerified) onVerified(code, mockGuest);
+        if (onVerified) onVerified(code, realGuestName);
       } else {
         setState("error");
-        setError("Ticket Invalid or Expired");
+        setError(data.message || "Access Denied: Invalid Code");
       }
     } catch {
       setState("error");
-      setError("Server connection failed");
+      setError("Server connection failed. Please try again.");
     }
   };
 
   const resetScanner = () => {
     stopStream();
     cleanupHtml5Scanner();
-    // REMOVED: setGuestName(null);
-    // REMOVED: setScannedCode(null);
     setUseLibrary(false);
     setState("idle");
   };
@@ -368,7 +369,6 @@ export default function VerifyScreen({
           {state === "error" && (
             <div className={styles.errorState}>
               <div className={styles.errorIcon}>!</div>
-              {/* FIX: Replaced inline style with CSS class */}
               <h3 className={`${styles.errorTitle} ${styles.errorText}`}>
                 ACCESS DENIED
               </h3>
