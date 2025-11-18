@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+// 1. Import the ProtectedLayout
+import ProtectedLayout from "@/components/ProtectedLayout";
 
 export const metadata: Metadata = {
   title: "Mary's Wedding",
@@ -15,7 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {/* 2. Wrap children in ProtectedLayout to enforce authentication */}
+          <ProtectedLayout>{children}</ProtectedLayout>
+        </AuthProvider>
       </body>
     </html>
   );

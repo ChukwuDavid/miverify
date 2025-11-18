@@ -2,7 +2,6 @@
 
 import React, { useRef, useState, useEffect } from "react";
 
-// FIX: Import the real auth hook
 import { useAuth } from "@/lib/auth-context";
 import styles from "./VerifyScreen.module.css";
 
@@ -10,7 +9,6 @@ import styles from "./VerifyScreen.module.css";
 /* TYPES & INTERFACES                                                         */
 /* -------------------------------------------------------------------------- */
 
-// Interface for the experimental BarcodeDetector API
 interface BarcodeDetectorStub {
   detect(
     imageSource: CanvasImageSource
@@ -21,7 +19,6 @@ interface BarcodeDetectorConstructor {
   new (options?: { formats: string[] }): BarcodeDetectorStub;
 }
 
-// Interface for the Html5Qrcode library instance
 interface Html5QrcodeScanner {
   start: (
     cameraIdOrConfig: string | { facingMode: string },
@@ -36,7 +33,6 @@ interface Html5QrcodeScanner {
   clear: () => Promise<void>;
 }
 
-// Interface for the Html5Qrcode Constructor
 interface Html5QrcodeConstructor {
   new (elementId: string): Html5QrcodeScanner;
 }
@@ -65,14 +61,13 @@ export default function VerifyScreen({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const html5ScannerRef = useRef<Html5QrcodeScanner | null>(null);
-
-  // FIX: Use the real logout function from context
   const { logout } = useAuth();
 
   const [state, setState] = useState<ScanState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [guestName, setGuestName] = useState<string | null>(null);
+  const [useLibrary, setUseLibrary] = useState(false); // Track if we are using the library
 
   /* -------------------------------------------------------------------------- */
   /* LIFECYCLE & CLEANUP                                                        */
@@ -106,20 +101,13 @@ export default function VerifyScreen({
         await html5ScannerRef.current.clear();
         html5ScannerRef.current = null;
       }
-      const elem = document.getElementById("html5qrcode-container");
-      if (elem) elem.remove();
     } catch (err) {
       console.error("Scanner cleanup error", err);
     }
   };
 
-  /* -------------------------------------------------------------------------- */
-  /* HANDLERS                                                                   */
-  /* -------------------------------------------------------------------------- */
-
   const handleLogout = async () => {
     try {
-      // Ensure scanner is stopped before logging out to prevent memory leaks
       stopStream();
       await cleanupHtml5Scanner();
       await logout();
@@ -137,12 +125,13 @@ export default function VerifyScreen({
     setError(null);
 
     try {
+      // Request camera access
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
 
+      // Temporarily attach to video ref to show immediate feedback
       streamRef.current = stream;
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -168,9 +157,14 @@ export default function VerifyScreen({
     ).BarcodeDetector;
 
     // Strategy 1: Native Barcode API (Chrome/Android)
+    // This works WITH the stream we just opened.
     if (BarcodeDetectorClass) {
       try {
         const detector = new BarcodeDetectorClass({ formats: ["qr_code"] });
+        // Check if it actually works (some browsers implement the class but fail on detect)
+        const testCanvas = document.createElement("canvas");
+        await detector.detect(testCanvas);
+
         scanWithBarcodeDetector(detector);
         return;
       } catch {
@@ -179,6 +173,10 @@ export default function VerifyScreen({
     }
 
     // Strategy 2: HTML5-QRCode Library Fallback
+    // FIX: Stop the manual stream so the library can start its own.
+    stopStream();
+    setUseLibrary(true); // Switch UI to show the library container
+
     try {
       const html5QrcodeModule = await import("html5-qrcode");
       const Html5Qrcode =
@@ -213,7 +211,7 @@ export default function VerifyScreen({
             return;
           }
         } catch {
-          // Silent fail for empty frames
+          // Silent fail
         }
       }
       requestAnimationFrame(loop);
@@ -224,17 +222,8 @@ export default function VerifyScreen({
   const scanWithHtml5Qrcode = async (
     Html5QrcodeClass: Html5QrcodeConstructor
   ) => {
-    const id = "html5qrcode-container";
-    let container = document.getElementById(id);
-
-    if (!container) {
-      container = document.createElement("div");
-      container.id = id;
-      container.style.display = "none";
-      document.body.appendChild(container);
-    }
-
-    const scanner = new Html5QrcodeClass(id);
+    // FIX: Target the visible "reader" div
+    const scanner = new Html5QrcodeClass("reader");
     html5ScannerRef.current = scanner;
 
     await scanner.start(
@@ -254,13 +243,11 @@ export default function VerifyScreen({
     if (!code) return;
 
     stopStream();
-    cleanupHtml5Scanner();
+    await cleanupHtml5Scanner(); // Make sure we await cleanup
     setScannedCode(code);
 
     try {
-      // Simulate API Network Request
       await new Promise((resolve) => setTimeout(resolve, 800));
-
       const success = Math.random() > 0.2;
 
       if (success) {
@@ -283,6 +270,7 @@ export default function VerifyScreen({
     cleanupHtml5Scanner();
     setGuestName(null);
     setScannedCode(null);
+    setUseLibrary(false);
     setState("idle");
   };
 
@@ -339,12 +327,18 @@ export default function VerifyScreen({
           {state === "scanning" && (
             <div className={styles.scanningState}>
               <div className={styles.cameraWrapper}>
-                <video
-                  ref={videoRef}
-                  className={styles.cameraVideo}
-                  muted
-                  playsInline
-                />
+                {/* FIX: Show video for Native API, div for Library */}
+                {!useLibrary ? (
+                  <video
+                    ref={videoRef}
+                    className={styles.cameraVideo}
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <div id="reader" className={styles.reader}></div>
+                )}
+
                 <div className={styles.scanOverlay}>
                   <div className={styles.scanWindow}></div>
                 </div>

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -34,9 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [sessionRemainingTime, setSessionRemainingTime] = useState(0);
 
+  // Ref to track if a login/signup action is in progress
+  // This prevents onAuthStateChanged from logging the user out before the session is saved
+  const isLoggingInRef = useRef(false);
+
   // Check session expiry on mount and periodically
   useEffect(() => {
-    // Only set up the interval; auth state is handled by onAuthStateChanged
     const interval = setInterval(() => {
       const remaining = getSessionRemainingTime();
       setSessionRemainingTime(remaining);
@@ -54,8 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       console.log("[auth] onAuthStateChanged fired", { currentUser });
+
       if (currentUser) {
-        if (isSessionExpired()) {
+        // FIX: Skip expiry check if we are currently in the process of logging in
+        if (!isLoggingInRef.current && isSessionExpired()) {
+          console.log("[auth] Session expired or missing, signing out...");
           // Session expired, log out
           signOut(auth)
             .then(() => {
@@ -88,12 +100,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (email: string, password: string) => {
     try {
+      isLoggingInRef.current = true; // Start login flow
       setError(null);
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
+      // Save session BEFORE clearing the flag
       saveSession(userCredential.user.uid);
       setUser(userCredential.user);
       console.log("[auth] signup succeeded", { uid: userCredential.user.uid });
@@ -101,17 +115,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const message = err instanceof Error ? err.message : "Signup failed";
       setError(message);
       throw err;
+    } finally {
+      // Small delay to ensure state updates propagate before enabling the listener check again
+      setTimeout(() => {
+        isLoggingInRef.current = false;
+      }, 500);
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
+      isLoggingInRef.current = true; // Start login flow
       setError(null);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
+      // Save session BEFORE clearing the flag
       saveSession(userCredential.user.uid);
       setUser(userCredential.user);
       console.log("[auth] login succeeded", { uid: userCredential.user.uid });
@@ -119,6 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
       throw err;
+    } finally {
+      // Small delay to ensure state updates propagate before enabling the listener check again
+      setTimeout(() => {
+        isLoggingInRef.current = false;
+      }, 500);
     }
   };
 
